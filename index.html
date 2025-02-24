@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musky App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E88E5',
+                        secondary: '#1565C0',
+                        accent: '#2196F3',
+                        background: '#0D47A1',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800">Welcome to Musky</h1>
+            <p class="text-gray-600 mt-2">Start mining to earn rewards!</p>
+        </header>
+
+        <!-- Mining Button -->
+        <div class="flex justify-center mb-8">
+            <button 
+                onclick="handleMining()"
+                class="w-32 h-32 bg-primary hover:bg-primary/90 text-white rounded-full flex items-center justify-center text-4xl shadow-lg transform hover:scale-105 transition-all"
+            >
+                ⛏️
+            </button>
+        </div>
+
+        <!-- Energy Bar -->
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-between text-sm text-gray-600 mb-2">
+                <span>Energy</span>
+                <span id="energyText">100%</span>
+            </div>
+            <div class="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                <div id="energyBar" class="h-full bg-primary transition-all duration-500" style="width: 100%"></div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+            <div class="container mx-auto max-w-md">
+                <div class="flex justify-between items-center">
+                    <a href="#" class="flex flex-col items-center text-primary">
+                        <span class="text-2xl">🏠</span>
+                        <span class="text-xs mt-1">Home</span>
+                    </a>
+                    <a href="#" class="flex flex-col items-center text-gray-600">
+                        <span class="text-2xl">📋</span>
+                        <span class="text-xs mt-1">Tasks</span>
+                    </a>
+                    <a href="#" class="flex flex-col items-center text-gray-600">
+                        <span class="text-2xl">⛏️</span>
+                        <span class="text-xs mt-1">Mining</span>
+                    </a>
+                    <a href="#" class="flex flex-col items-center text-gray-600">
+                        <span class="text-2xl">👥</span>
+                        <span class="text-xs mt-1">Refer</span>
+                    </a>
+                    <a href="#" class="flex flex-col items-center text-gray-600">
+                        <span class="text-2xl">💰</span>
+                        <span class="text-xs mt-1">Earn</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        let energy = 100;
+        let isAnimating = false;
+        const energyBar = document.getElementById('energyBar');
+        const energyText = document.getElementById('energyText');
+
+        function handleMining() {
+            if (energy > 0 && !isAnimating) {
+                isAnimating = true;
+                energy = Math.max(0, energy - 10);
+                
+                // Update UI
+                energyBar.style.width = `${energy}%`;
+                energyText.textContent = `${energy}%`;
+
+                // Animation
+                const button = event.currentTarget;
+                button.classList.add('scale-90');
+                setTimeout(() => {
+                    button.classList.remove('scale-90');
+                    isAnimating = false;
+                }, 200);
+            }
+        }
+    </script>
+</body>
+</html> 

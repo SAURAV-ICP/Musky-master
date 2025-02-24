@@ -1,0 +1,513 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-dark: 10, 10, 18;
+  --background-accent: 88, 24, 69;
+  --background-glow: 138, 43, 226;
+  --accent: 255, 171, 0;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background-color: rgb(var(--background-dark));
+  min-height: 100vh;
+  font-family: 'Space Grotesk', sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(var(--background-accent), 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(var(--background-glow), 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(var(--background-dark), 0.8) 0%, rgb(var(--background-dark)) 100%);
+  animation: backgroundShift 15s ease-in-out infinite alternate;
+  z-index: -1;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes backgroundShift {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+.bg-accent {
+  background-color: rgb(var(--accent));
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
+  transform: translateZ(0);
+}
+
+.glass-effect:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  animation: shimmerEffect 2s infinite;
+}
+
+@keyframes shimmerEffect {
+  0% {
+    transform: translateX(-100%) translateZ(0);
+  }
+  100% {
+    transform: translateX(100%) translateZ(0);
+  }
+}
+
+.tap-button {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(45deg, 
+    rgba(var(--accent), 0.8), 
+    rgba(var(--background-glow), 0.8)
+  );
+  box-shadow: 
+    0 0 20px rgba(var(--accent), 0.3),
+    0 0 60px rgba(var(--background-glow), 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.tap-button::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(45deg, 
+    rgba(var(--accent), 0.9), 
+    rgba(var(--background-glow), 0.9)
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+.tap-button:hover::before {
+  opacity: 1;
+}
+
+.tap-button img {
+  transition: transform 0.3s ease;
+}
+
+.tap-button:hover img {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.tap-button:active img {
+  transform: scale(0.9) rotate(5deg);
+}
+
+.tap-button::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg,
+    transparent,
+    rgba(var(--accent), 0.1),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: buttonShine 3s infinite;
+}
+
+@keyframes buttonShine {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  80%, 100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+.energy-bar {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, 
+    rgba(var(--accent), 0.8), 
+    rgba(var(--background-glow), 0.8)
+  );
+  box-shadow: 
+    0 0 20px rgba(var(--accent), 0.2),
+    inset 0 0 10px rgba(255, 255, 255, 0.1);
+  transform: translateZ(0);
+}
+
+.energy-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: energyShimmer 2s infinite;
+  transform: translateZ(0);
+}
+
+@keyframes energyShimmer {
+  100% {
+    transform: translateX(200%) translateZ(0);
+  }
+}
+
+.floating {
+  animation: floating 6s ease-in-out infinite;
+  transform: translateZ(0);
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) translateZ(0);
+  }
+  50% {
+    transform: translateY(-10px) rotate(5deg) translateZ(0);
+  }
+}
+
+.glow-text {
+  text-shadow: 
+    0 0 10px rgba(var(--accent), 0.5),
+    0 0 20px rgba(var(--background-glow), 0.3);
+  animation: textPulse 4s ease-in-out infinite;
+  transform: translateZ(0);
+}
+
+@keyframes textPulse {
+  0%, 100% {
+    text-shadow: 
+      0 0 10px rgba(var(--accent), 0.5),
+      0 0 20px rgba(var(--background-glow), 0.3);
+  }
+  50% {
+    text-shadow: 
+      0 0 15px rgba(var(--accent), 0.7),
+      0 0 30px rgba(var(--background-glow), 0.5);
+  }
+}
+
+.premium-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
+}
+
+.premium-card:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 
+    0 10px 40px -10px rgba(var(--background-glow), 0.3),
+    0 0 20px rgba(var(--accent), 0.2);
+}
+
+.premium-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: cardShine 6s linear infinite;
+  z-index: 1;
+}
+
+@keyframes cardShine {
+  0% {
+    transform: rotate(45deg) translateY(-100%) translateZ(0);
+  }
+  100% {
+    transform: rotate(45deg) translateY(100%) translateZ(0);
+  }
+}
+
+/* Performance Optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  will-change: transform, opacity;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Particle Effects */
+.particle {
+  pointer-events: none;
+  position: absolute;
+  animation: particleFade 0.5s ease-out forwards;
+}
+
+@keyframes particleFade {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+/* Enhanced Loading Animation */
+.loading-dot {
+  animation: loadingPulse 1s ease-in-out infinite;
+  transform: translateZ(0);
+}
+
+@keyframes loadingPulse {
+  0%, 100% {
+    transform: scale(1) translateZ(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.5) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* Floating Background Particles */
+.particle-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.background-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: floatUp 10s linear infinite;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(100vh) scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-20vh) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Tap Effects */
+.tap-particle {
+  position: absolute;
+  pointer-events: none;
+  animation: tapParticle 1s ease-out forwards;
+}
+
+@keyframes tapParticle {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -150%) scale(1.5) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Floating Numbers */
+.floating-number {
+  position: fixed;
+  font-size: 24px;
+  font-weight: bold;
+  color: #4CAF50;
+  pointer-events: none;
+  z-index: 1000;
+  animation: floatNumber 1s ease-out forwards;
+}
+
+@keyframes floatNumber {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+}
+
+/* Premium Gradient Backgrounds */
+.premium-gradient {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 136, 229, 0.2),
+    rgba(156, 39, 176, 0.2)
+  );
+  backdrop-filter: blur(10px);
+}
+
+.premium-border {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Shimmering Effects */
+.shimmer-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to bottom right,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shimmerAnimation 3s linear infinite;
+}
+
+@keyframes shimmerAnimation {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+/* Star Particles */
+.star-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #FFD700;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  animation: starFloat 1s ease-out forwards;
+}
+
+@keyframes starFloat {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -150%) scale(0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Prevent touch behaviors */
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+body {
+  overscroll-behavior: none;
+  overflow-x: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+.tap-area {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+} 
