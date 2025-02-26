@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 
@@ -13,7 +14,7 @@ export default function Layout({ children }: LayoutProps) {
   
   const navItems = [
     { href: '/', label: 'Home', icon: '🏠' },
-    { href: '/tasks', label: 'Tasks', icon: '📋' },
+    { href: '/tasks', label: 'Tasks', icon: <Image src="/components/assets/TASKS.png" width={24} height={24} alt="Tasks" /> },
     { href: '/mining', label: 'Mining', icon: '⛏️' },
     { href: '/refer', label: 'Refer', icon: '👥' },
     { href: '/earn', label: 'Earn', icon: '💰' },

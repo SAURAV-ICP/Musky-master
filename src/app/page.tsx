@@ -245,22 +245,15 @@ export default function HomePage() {
             <div className="flex items-center space-x-4">
               <motion.button
                 onClick={() => setIsSpinOpen(true)}
-                className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-xl"
-                animate={{
-                  rotate: [0, 360],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
+                className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-xl relative overflow-hidden"
               >
-                <Image
-                  src="/assets/Lucky_spin.png"
-                  alt="Lucky Spin"
-                  width={24}
-                  height={24}
-                  className="object-contain"
+                <video
+                  src="/components/assets/lucky_spins.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
                 />
               </motion.button>
               <motion.button
@@ -269,7 +262,13 @@ export default function HomePage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                ⭐
+                <Image
+                  src="/components/assets/stars.png"
+                  alt="Stars"
+                  width={24}
+                  height={24}
+                  className="object-contain"
+                />
               </motion.button>
             </div>
           </div>
@@ -351,11 +350,18 @@ export default function HomePage() {
           <div className="fixed bottom-20 left-0 right-0 flex justify-between px-8">
             <motion.button
               onClick={() => setIsSpinOpen(true)}
-              className="w-16 h-16 rounded-full bg-accent shadow-lg flex items-center justify-center text-2xl"
-              whileHover={{ scale: 1.1, rotate: 180 }}
+              className="w-16 h-16 rounded-full bg-accent shadow-lg flex items-center justify-center text-2xl relative overflow-hidden"
+              whileHover={{ scale: 1.1 }}
               transition={{ duration: 0.3 }}
             >
-              🎰
+              <video
+                src="/components/assets/lucky_spins.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
             </motion.button>
             <motion.button
               onClick={() => setIsUpgradeOpen(true)}
@@ -363,7 +369,13 @@ export default function HomePage() {
               whileHover={{ scale: 1.1 }}
               transition={{ duration: 0.3 }}
             >
-              ⭐
+              <Image
+                src="/components/assets/stars.png"
+                alt="Stars"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
             </motion.button>
           </div>
         </div>

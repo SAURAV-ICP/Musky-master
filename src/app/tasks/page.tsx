@@ -99,12 +99,22 @@ export default function TasksPage() {
         .from('task_submissions')
         .select('*')
         .eq('status', 'approved')
-        .not('id', 'in', completedTaskIds.length > 0 ? completedTaskIds : ['0']);
+        .eq('active', true) // Only get active tasks
+        .order('created_at', { ascending: false }) // Show newest first
+        .then(result => {
+          if (result.error) throw result.error;
+          // Filter out completed tasks
+          return {
+            data: result.data?.filter(task => !completedTaskIds.includes(task.id)) || [],
+            error: null
+          };
+        });
 
       if (error) throw error;
       setTasks(tasks || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      toast.error('Failed to fetch tasks');
     }
   };
 
@@ -123,15 +133,17 @@ export default function TasksPage() {
       }
 
       const taskIds = clicks.map(click => click.task_id);
-      const { data: completedTasks } = await supabase
+      const { data: completedTasks, error } = await supabase
         .from('task_submissions')
         .select('*')
         .in('id', taskIds)
         .order('created_at', { ascending: false });
 
+      if (error) throw error;
       setCompletedTasks(completedTasks || []);
     } catch (error) {
       console.error('Error fetching completed tasks:', error);
+      toast.error('Failed to fetch completed tasks');
     }
   };
 

@@ -103,7 +103,7 @@ const gpus: GPU[] = [
       power: '500W',
       efficiency: '0.001 SOL/W/day'
     },
-    image: '/components/assets/5090ti.jpg.webp',
+    image: '/components/assets/5090ti.mov',
     description: 'Ultimate mining GPU for maximum returns.',
     maxPurchase: 2
   }
@@ -202,12 +202,23 @@ export default function MiningPage() {
               onClick={() => setSelectedGPU(gpu)}
             >
               <div className="relative h-48 mb-4">
-                <Image
-                  src={gpu.image}
-                  alt={gpu.name}
-                  fill
-                  className="object-contain"
-                />
+                {gpu.name === 'RTX 5090 MAX' ? (
+                  <video
+                    src={gpu.image}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <Image
+                    src={gpu.image}
+                    alt={gpu.name}
+                    fill
+                    className="object-contain"
+                  />
+                )}
               </div>
               
               <div className="flex justify-between items-start mb-4">
