@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '@/components/layout/Layout';
-import { useUser } from '@/hooks/useUser';
+import { useUser, User } from '@/contexts/UserContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 

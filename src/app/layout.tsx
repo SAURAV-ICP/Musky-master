@@ -3,6 +3,8 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { UserProvider } from '@/contexts/UserContext'
+import { TonConnectProvider } from '@/components/providers/TonConnectProvider'
+import { Toaster } from 'react-hot-toast'
 import Head from 'next/head'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -21,9 +23,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={`${inter.className} overflow-x-hidden`}>
-        <UserProvider>
-          {children}
-        </UserProvider>
+        <TonConnectProvider>
+          <UserProvider>
+            {children}
+            <Toaster position="bottom-center" />
+          </UserProvider>
+        </TonConnectProvider>
       </body>
     </html>
   )

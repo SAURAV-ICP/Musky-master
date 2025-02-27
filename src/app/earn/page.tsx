@@ -6,10 +6,11 @@ import { motion } from 'framer-motion';
 import { useUser } from '@/contexts/UserContext';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
+import { PaymentOptions } from '@/components/earn/PaymentOptions';
 
 export default function EarnPage() {
   const { user, mutate } = useUser();
-  const [activeTab, setActiveTab] = useState<'stake' | 'withdraw'>('stake');
+  const [activeTab, setActiveTab] = useState<'payments' | 'stake' | 'withdraw'>('payments');
   const [stakeAmount, setStakeAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [walletAddress, setWalletAddress] = useState(user?.solana_address || '');
@@ -167,11 +168,23 @@ export default function EarnPage() {
       <div className="max-w-2xl mx-auto px-4">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Earn & Withdraw</h1>
-          <p className="text-white/60">Stake MUSKY and withdraw SOL</p>
+          <p className="text-white/60">Purchase items, stake MUSKY and withdraw SOL</p>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex space-x-4 mb-6">
+          <motion.button
+            onClick={() => setActiveTab('payments')}
+            className={`flex-1 py-3 rounded-xl font-bold ${
+              activeTab === 'payments'
+                ? 'bg-accent text-white'
+                : 'bg-primary/20 text-white/60'
+            }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Purchase
+          </motion.button>
           <motion.button
             onClick={() => setActiveTab('stake')}
             className={`flex-1 py-3 rounded-xl font-bold ${
@@ -182,7 +195,7 @@ export default function EarnPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Stake MUSKY
+            Stake
           </motion.button>
           <motion.button
             onClick={() => setActiveTab('withdraw')}
@@ -194,9 +207,19 @@ export default function EarnPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Withdraw SOL
+            Withdraw
           </motion.button>
         </div>
+
+        {/* Payments Section */}
+        {activeTab === 'payments' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <PaymentOptions />
+          </motion.div>
+        )}
 
         {/* Staking Section */}
         {activeTab === 'stake' && (
@@ -248,15 +271,12 @@ export default function EarnPage() {
                     </motion.button>
                   </div>
                 </div>
-                <p className="text-sm text-white/60">
-                  Earn 0.5% daily rewards with automatic compounding. No lock-up period.
-                </p>
               </div>
             </motion.div>
           </div>
         )}
 
-        {/* Withdrawal Section */}
+        {/* Withdraw Section */}
         {activeTab === 'withdraw' && (
           <div className="space-y-6">
             <motion.div
@@ -264,80 +284,69 @@ export default function EarnPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-primary/20 backdrop-blur-lg rounded-xl p-6 border border-white/10"
             >
-              <h2 className="text-lg font-semibold text-white mb-4">Solana Wallet</h2>
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  value={solanaAddress}
-                  onChange={(e) => setSolanaAddress(e.target.value)}
-                  placeholder="Enter your Solana address"
-                  className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white"
-                />
-                <motion.button
-                  className="w-full py-3 bg-accent rounded-lg font-bold text-white"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleUpdateSolanaAddress}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? 'Updating...' : 'Update Solana Address'}
-                </motion.button>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-primary/20 backdrop-blur-lg rounded-xl p-6 border border-white/10"
-            >
               <h2 className="text-lg font-semibold text-white mb-4">Withdraw SOL</h2>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-white/80">Available Balance:</span>
-                  <div className="flex items-center">
-                    <span className="text-white font-bold mr-1">{user?.solana_balance?.toFixed(2) ?? 0}</span>
-                    <Image
-                      src="/components/assets/solana-logo.png"
-                      alt="SOL"
-                      width={16}
-                      height={16}
+              
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-white/80">Available SOL:</span>
+                  <span className="text-white font-bold">{user?.solana_balance?.toFixed(4) ?? 0} SOL</span>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm text-white/80 mb-2">Solana Wallet Address</label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={solanaAddress}
+                      onChange={(e) => setSolanaAddress(e.target.value)}
+                      placeholder="Enter Solana address"
+                      className="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40"
                     />
+                    <motion.button
+                      onClick={handleUpdateSolanaAddress}
+                      disabled={isUpdating || !solanaAddress}
+                      className="px-4 py-2 bg-accent rounded-lg font-semibold text-white disabled:opacity-50"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Update
+                    </motion.button>
                   </div>
+                  <p className="text-xs text-white/40 mt-1">Make sure to enter a valid Solana address</p>
                 </div>
                 
-                <div className="space-y-2">
-                  <input
-                    type="number"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    placeholder="Enter amount (min. 2 SOL)"
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white"
-                    min="2"
-                    step="0.1"
-                  />
-                  <p className="text-xs text-white/60">Minimum withdrawal: 2 SOL</p>
+                <div>
+                  <label className="block text-sm text-white/80 mb-2">Amount to Withdraw</label>
+                  <div className="flex space-x-2">
+                    <input
+                      type="number"
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="Enter amount"
+                      className="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/40"
+                    />
+                    <motion.button
+                      onClick={handleWithdraw}
+                      disabled={isSubmitting || !user?.solana_address}
+                      className="px-4 py-2 bg-accent rounded-lg font-semibold text-white disabled:opacity-50"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Withdraw
+                    </motion.button>
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">Minimum withdrawal: 2 SOL</p>
                 </div>
-
-                <motion.button
-                  className={`w-full py-3 rounded-lg font-bold ${
-                    !user?.solana_address || isSubmitting
-                      ? 'bg-gray-500 cursor-not-allowed'
-                      : 'bg-accent hover:bg-accent/90'
-                  }`}
-                  whileHover={!isSubmitting ? { scale: 1.02 } : {}}
-                  whileTap={!isSubmitting ? { scale: 0.98 } : {}}
-                  onClick={handleWithdraw}
-                  disabled={!user?.solana_address || isSubmitting}
-                >
-                  {isSubmitting ? 'Processing...' : 'Request Withdrawal'}
-                </motion.button>
-                
-                {!user?.solana_address && (
-                  <p className="text-sm text-red-400">
-                    Please set your Solana address before withdrawing
-                  </p>
-                )}
+              </div>
+              
+              <div className="bg-black/20 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-white mb-2">Withdrawal Information</h3>
+                <ul className="space-y-1 text-xs text-white/60">
+                  <li>• Withdrawals are processed manually within 24 hours</li>
+                  <li>• Make sure your Solana address is correct</li>
+                  <li>• Minimum withdrawal amount is 2 SOL</li>
+                  <li>• You can only withdraw to your own wallet</li>
+                </ul>
               </div>
             </motion.div>
           </div>

@@ -9,11 +9,25 @@ const nextConfig = {
       },
     ],
     unoptimized: true,
-    domains: ['localhost'],
+    domains: ['localhost', 'musky-mini-app.vercel.app'],
   },
-  // Will be configured when we set up Telegram Mini App
-  async rewrites() {
-    return [];
+  // Configuration for Telegram Mini App
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://telegram.org https://*.telegram.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ton.org https://*.ton.org https://telegram.org https://*.telegram.org; img-src 'self' blob: data: https://*.supabase.co https://telegram.org https://*.telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://telegram.org https://*.telegram.org;"
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'ALLOW-FROM https://telegram.org/'
+          }
+        ]
+      }
+    ];
   },
   webpack: (config) => {
     config.module.rules.push({

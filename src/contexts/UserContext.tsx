@@ -20,6 +20,7 @@ export interface User {
   level: string;
   is_admin: boolean;
   solana_address: string | null;
+  mining_rate: number;
 }
 
 interface UserContextType {
