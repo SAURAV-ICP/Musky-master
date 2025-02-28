@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/hooks/useUser';
+import Image from 'next/image';
 
 interface PaymentProcessorProps {
   amount: number;
@@ -18,231 +19,222 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
   onSuccess,
   onCancel
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
   const { user, mutate } = useUser();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handlePayment = async () => {
     if (!user) {
-      toast.error('You must be logged in to make a purchase');
-      onCancel();
+      setError('User not found. Please refresh the page.');
       return;
     }
 
     setIsProcessing(true);
+    setError(null);
 
     try {
-      if (currency === 'TON') {
-        // Handle TON payment through Telegram Mini App
-        if (!window.Telegram?.WebApp) {
-          toast.error('Telegram WebApp is not available');
-          setIsProcessing(false);
-          onCancel();
-          return;
-        }
-
-        // Request payment through Telegram
-        const result = await window.Telegram.WebApp.requestPayment({
-          amount: amount,
-          currency: 'TON'
-        });
-
-        if (result.success) {
-          // Payment successful, now record the purchase in your backend
-          const response = await fetch('/api/payments/process', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id: user.user_id,
+      // For TON and Stars, we need to use the Telegram Mini App API
+      if (currency === 'TON' || currency === 'Stars') {
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+          try {
+            // Request payment through Telegram
+            const result = await window.Telegram.WebApp.requestPayment({
               amount: amount,
-              currency: 'TON',
-              item_type: itemType
-            })
-          });
+              currency: currency === 'TON' ? 'TON' : 'STARS'
+            });
 
-          if (response.ok) {
-            toast.success('Payment successful!');
-            // Refresh user data to get updated balances
-            await mutate();
-            onSuccess();
-          } else {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to process payment');
+            if (result.success) {
+              // Payment successful, now record it in our backend
+              const response = await fetch('/api/payments/process', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  user_id: user.user_id,
+                  amount: amount,
+                  currency: currency,
+                  item_type: itemType,
+                }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                setIsSuccess(true);
+                // Update user data
+                mutate();
+                // Notify parent component
+                setTimeout(() => {
+                  onSuccess();
+                }, 1500);
+              } else {
+                const errorData = await response.json();
+                setError(errorData.error || 'Failed to process payment');
+              }
+            } else {
+              setError('Payment was cancelled or failed');
+            }
+          } catch (e) {
+            console.error('Telegram payment error:', e);
+            setError('Failed to process Telegram payment');
           }
         } else {
-          throw new Error('Payment was not completed');
+          setError('Telegram Web App is not available');
         }
       } else if (currency === 'MUSKY') {
-        // Handle MUSKY payment (internal balance)
-        if (!user || user.balance < amount) {
-          toast.error('Insufficient MUSKY balance');
-          setIsProcessing(false);
-          onCancel();
+        // For MUSKY, we just need to check balance and process internally
+        if (user.balance < amount) {
+          setError('Insufficient MUSKY balance');
           return;
         }
 
-        // Process the MUSKY payment through your backend
+        // Process MUSKY payment
         const response = await fetch('/api/payments/process', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             user_id: user.user_id,
             amount: amount,
             currency: 'MUSKY',
-            item_type: itemType
-          })
+            item_type: itemType,
+          }),
         });
 
         if (response.ok) {
-          toast.success('Purchase successful!');
-          // Refresh user data to get updated balances
-          await mutate();
-          onSuccess();
-        } else {
           const data = await response.json();
-          throw new Error(data.error || 'Failed to process purchase');
-        }
-      } else if (currency === 'Stars') {
-        // Handle Stars payment through Telegram Mini App
-        if (!window.Telegram?.WebApp) {
-          toast.error('Telegram WebApp is not available');
-          setIsProcessing(false);
-          onCancel();
-          return;
-        }
-
-        // Request payment through Telegram
-        const result = await window.Telegram.WebApp.requestPayment({
-          amount: amount,
-          currency: 'STARS'
-        });
-
-        if (result.success) {
-          // Payment successful, now record the purchase in your backend
-          const response = await fetch('/api/payments/process', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              user_id: user.user_id,
-              amount: amount,
-              currency: 'Stars',
-              item_type: itemType
-            })
-          });
-
-          if (response.ok) {
-            toast.success('Payment successful!');
-            // Refresh user data to get updated balances
-            await mutate();
+          setIsSuccess(true);
+          // Update user data
+          mutate();
+          // Notify parent component
+          setTimeout(() => {
             onSuccess();
-          } else {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to process payment');
-          }
+          }, 1500);
         } else {
-          throw new Error('Payment was not completed');
+          const errorData = await response.json();
+          setError(errorData.error || 'Failed to process payment');
         }
       }
     } catch (error) {
       console.error('Payment error:', error);
-      toast.error(error instanceof Error ? error.message : 'Payment failed');
-      onCancel();
+      setError('An unexpected error occurred');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Calculate equivalent amounts in other currencies for display
-  const getEquivalentAmounts = () => {
-    // These are example conversion rates - you should use real rates
-    const tonToMusky = 10000; // 1 TON = 10,000 MUSKY
-    const starsToMusky = 100;  // 1 Star = 100 MUSKY
+  // Automatically start payment process when component mounts
+  useEffect(() => {
+    // Small delay to allow UI to render
+    const timer = setTimeout(() => {
+      handlePayment();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
+  // Helper function to get equivalent amounts in other currencies
+  const getEquivalentAmounts = () => {
+    const equivalents: { [key: string]: number } = {};
+    
     if (currency === 'TON') {
-      return {
-        musky: amount * tonToMusky,
-        stars: amount * (tonToMusky / starsToMusky)
-      };
+      // Convert TON to other currencies
+      equivalents.MUSKY = amount * 8000; // 1 TON = 8000 MUSKY
+      equivalents.Stars = amount * 500; // 1 TON = 500 Stars
     } else if (currency === 'Stars') {
-      return {
-        musky: amount * starsToMusky,
-        ton: amount / (tonToMusky / starsToMusky)
-      };
-    } else { // MUSKY
-      return {
-        ton: amount / tonToMusky,
-        stars: amount / starsToMusky
-      };
+      // Convert Stars to other currencies
+      equivalents.MUSKY = amount * 16; // 1 Star = 16 MUSKY
+      equivalents.TON = amount / 500; // 500 Stars = 1 TON
+    } else if (currency === 'MUSKY') {
+      // Convert MUSKY to other currencies
+      equivalents.TON = amount / 8000; // 8000 MUSKY = 1 TON
+      equivalents.Stars = amount / 16; // 16 MUSKY = 1 Star
     }
+    
+    return equivalents;
   };
 
-  const equivalentAmounts = getEquivalentAmounts();
+  const equivalents = getEquivalentAmounts();
 
   return (
-    <div className="w-full max-w-md mx-auto bg-primary/20 p-6 rounded-xl border border-white/10">
-      <h2 className="text-xl font-bold text-center mb-6">Confirm Payment</h2>
-      
-      <div className="space-y-4 mb-6">
-        <div className="flex justify-between items-center">
-          <span className="text-white/70">Item:</span>
-          <span className="font-bold">{itemType}</span>
-        </div>
-        
-        <div className="flex justify-between items-center">
-          <span className="text-white/70">Amount:</span>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-xl font-bold mb-2">Processing Payment</h3>
+        <p className="text-white/60">
+          {isProcessing ? 'Processing your payment...' : 
+           isSuccess ? 'Payment successful!' : 
+           error ? 'Payment failed' : 
+           `Paying ${amount} ${currency} for ${itemType}`}
+        </p>
+      </div>
+
+      <div className="bg-black/20 rounded-xl p-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-white/60">Amount:</span>
           <span className="font-bold">{amount} {currency}</span>
         </div>
-
-        {/* Show equivalent amounts in other currencies */}
-        <div className="bg-background/30 p-3 rounded-lg mt-4">
-          <p className="text-sm text-white/60 mb-2">Equivalent to:</p>
-          {currency !== 'TON' && equivalentAmounts.ton !== undefined && (
-            <p className="text-sm">{equivalentAmounts.ton.toFixed(4)} TON</p>
+        
+        {/* Show equivalent amounts */}
+        <div className="space-y-1 text-sm text-white/60">
+          {currency !== 'MUSKY' && (
+            <div className="flex justify-between">
+              <span>Equivalent MUSKY:</span>
+              <span>{equivalents.MUSKY.toLocaleString()} MUSKY</span>
+            </div>
           )}
-          {currency !== 'Stars' && equivalentAmounts.stars !== undefined && (
-            <p className="text-sm">{equivalentAmounts.stars.toFixed(2)} Stars</p>
+          {currency !== 'TON' && (
+            <div className="flex justify-between">
+              <span>Equivalent TON:</span>
+              <span>{equivalents.TON.toFixed(4)} TON</span>
+            </div>
           )}
-          {currency !== 'MUSKY' && equivalentAmounts.musky !== undefined && (
-            <p className="text-sm">{equivalentAmounts.musky.toFixed(0)} MUSKY</p>
+          {currency !== 'Stars' && (
+            <div className="flex justify-between">
+              <span>Equivalent Stars:</span>
+              <span>{equivalents.Stars.toLocaleString()} Stars</span>
+            </div>
           )}
         </div>
       </div>
-      
-      <div className="flex space-x-4">
-        <motion.button
-          className="flex-1 py-3 bg-gray-600/50 rounded-lg font-medium"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onCancel}
-          disabled={isProcessing}
-        >
-          Cancel
-        </motion.button>
-        
-        <motion.button
-          className="flex-1 py-3 bg-accent rounded-lg font-medium flex items-center justify-center"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handlePayment}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+
+      <div className="flex justify-center">
+        {isProcessing ? (
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-t-accent border-white/20 rounded-full animate-spin mb-4"></div>
+            <p className="text-white/60">Processing payment...</p>
+          </div>
+        ) : isSuccess ? (
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Processing...
-            </>
-          ) : (
-            `Pay with ${currency}`
-          )}
-        </motion.button>
+            </div>
+            <p className="text-green-400">Payment successful!</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <p className="text-red-400 mb-2">{error}</p>
+            <button 
+              onClick={onCancel}
+              className="px-4 py-2 bg-black/20 rounded-lg hover:bg-black/30 transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-t-accent border-white/20 rounded-full animate-spin mb-4"></div>
+            <p className="text-white/60">Initializing payment...</p>
+          </div>
+        )}
       </div>
     </div>
   );

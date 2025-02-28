@@ -21,6 +21,7 @@ export default function ReferPage() {
   const { user } = useUser();
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const BOT_LINK = 'https://t.me/MUSKY_ON_SOL_BOT';
 
   useEffect(() => {
     if (user?.user_id) {
@@ -37,6 +38,7 @@ export default function ReferPage() {
       
       if (response.ok) {
         const data = await response.json();
+        data.referralLink = `${BOT_LINK}?start=ref_${user.user_id}`;
         setStats(data);
       } else {
         throw new Error('Failed to fetch referral stats');
@@ -64,17 +66,17 @@ export default function ReferPage() {
   const shareToTelegram = () => {
     if (!stats?.referralLink) return;
     
-    // Get the current origin
-    const origin = typeof window !== 'undefined' 
-      ? window.location.origin
-      : '';
-    
-    // Create the share URL for Telegram
-    const shareText = `Join me on Musky Mini App and earn MUSKY tokens! ${stats.referralLink}`;
+    const shareText = `Join me on Musky and earn MUSKY tokens! Use my referral link:`;
     const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(stats.referralLink)}&text=${encodeURIComponent(shareText)}`;
     
-    // Open in a new tab
     window.open(telegramShareUrl, '_blank');
+  };
+
+  const openReferralBot = () => {
+    if (!user?.user_id) return;
+    
+    const referralLink = `${BOT_LINK}?start=ref_${user.user_id}`;
+    window.open(referralLink, '_blank');
   };
 
   return (
@@ -134,6 +136,15 @@ export default function ReferPage() {
                   <span>📱</span>
                   <span>Share on Telegram</span>
                 </motion.button>
+                <motion.button
+                  className="flex-1 bg-accent/80 py-3 rounded-lg font-medium flex items-center justify-center space-x-2"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={openReferralBot}
+                >
+                  <span>🤖</span>
+                  <span>Open Bot</span>
+                </motion.button>
               </div>
             </div>
             
@@ -146,7 +157,7 @@ export default function ReferPage() {
                   </div>
                   <div>
                     <p className="font-medium">Share your referral link</p>
-                    <p className="text-white/60 text-sm">Send your unique referral link to friends via any method</p>
+                    <p className="text-white/60 text-sm">Send your unique referral link to friends via Telegram</p>
                   </div>
                 </div>
                 
@@ -156,7 +167,7 @@ export default function ReferPage() {
                   </div>
                   <div>
                     <p className="font-medium">Friends join $Musky platform</p>
-                    <p className="text-white/60 text-sm">When they join using your link, they become your referral , you Get instantly 2000 $MUSKY </p>
+                    <p className="text-white/60 text-sm">When they join using your link, they become your referral, you Get instantly 2000 $MUSKY</p>
                   </div>
                 </div>
                 

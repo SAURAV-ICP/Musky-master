@@ -250,6 +250,7 @@ const TaskMarketplace = () => {
                 currency="TON"
                 onSuccess={handlePaymentSuccess}
                 onCancel={() => setShowPaymentModal(false)}
+                itemType="hero"
               />
             </motion.div>
           </motion.div>
