@@ -22,5 +22,11 @@
         }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/admin/scheduled-broadcast?key=$CRON_SECRET_KEY",
+      "schedule": "0 12 * * *"
+    }
   ]
 } 

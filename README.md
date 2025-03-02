@@ -13,6 +13,10 @@ A Telegram bot for managing MUSKY token airdrops and referrals.
 - 📊 User statistics tracking
 - ⛏️ Mining system with GPU purchases
 - 💎 Real-time SOL mining rewards
+- 🔒 Token staking with compound interest
+- 📅 Daily claim system with increasing rewards
+- 📣 Admin broadcast messaging system
+- 🔔 Balance-based notification popups
 
 ## Setup
 
@@ -30,6 +34,10 @@ A Telegram bot for managing MUSKY token airdrops and referrals.
    npm run dev
    ```
 
+4. Set up the database:
+   - Run the migrations in the `migrations` folder
+   - The `add_staking_and_daily_claims.sql` file contains the latest schema updates
+
 ## Bot Commands
 
 - `/start` - Start the bot and begin verification process
@@ -39,6 +47,8 @@ A Telegram bot for managing MUSKY token airdrops and referrals.
   - About MUSKY
   - Withdraw Tokens
   - Mining Farm
+  - Staking
+  - Daily Rewards
 
 ## Database
 
@@ -53,6 +63,46 @@ User data is stored in Supabase with the following information:
 - Mining equipment
 - Mining rate
 - Solana balance
+- Staking positions
+- Daily claim streak
+
+## New Features
+
+### Token Staking System
+
+The staking system allows users to lock their MUSKY tokens for a fixed period to earn rewards:
+
+- Multiple staking plans with different durations and APY rates
+- Early withdrawal with penalty fees
+- Compound interest calculation
+- Visual representation of staking positions
+
+### Daily Claim System
+
+The daily claim system encourages user retention with increasing rewards:
+
+- Streak-based rewards that increase over time
+- Special bonuses for weekly and monthly milestones
+- Visual calendar showing upcoming rewards
+- Countdown timer for next available claim
+
+### Admin Broadcast System
+
+The admin broadcast system allows administrators to send messages to all users:
+
+- Create messages with different types (info, warning, success, error)
+- Set expiration dates for messages
+- Activate/deactivate messages as needed
+- Track message history
+
+### Balance Popup Notifications
+
+The balance popup system shows targeted messages to users with specific balances:
+
+- Configurable minimum balance threshold
+- Support for different message types
+- One-time display with local storage tracking
+- Smooth animations for better user experience
 
 ## Deployment to Vercel
 

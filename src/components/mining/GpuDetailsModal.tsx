@@ -68,6 +68,12 @@ const GpuDetailsModal: React.FC<GpuDetailsModalProps> = ({
   // Calculate USD value
   const solPrice = 150; // $150 per SOL
   const totalUsdValue = totalMining * solPrice;
+  
+  // Calculate ROI (Return on Investment)
+  const tonPrice = 6.5; // $6.5 per TON
+  const investmentUsd = gpu.price.ton * tonPrice;
+  const roiDays = investmentUsd / (gpu.miningRatePerDay * solPrice);
+  const roiPercentage = (totalUsdValue / investmentUsd) * 100 - 100;
 
   return (
     <AnimatePresence>
@@ -179,6 +185,20 @@ const GpuDetailsModal: React.FC<GpuDetailsModalProps> = ({
                       <div className="text-right">
                         <p className="text-sm text-white/60">Estimated Value</p>
                         <p className="font-bold text-green-400">${totalUsdValue.toFixed(2)} USD</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* ROI Information */}
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-white/60">ROI Period</p>
+                        <p className="font-bold text-accent">{roiDays.toFixed(1)} days</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-white/60">ROI Percentage</p>
+                        <p className="font-bold text-accent">+{roiPercentage.toFixed(0)}%</p>
                       </div>
                     </div>
                   </div>

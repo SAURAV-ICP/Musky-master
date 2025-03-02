@@ -15,6 +15,9 @@ interface MiningRates {
   perDay: number;
 }
 
+// Admin ID from environment variable
+const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_ID || '7093793454';
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
@@ -24,10 +27,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
+    console.log(`Fetching mining data for user: ${user_id}`);
+
     // Fetch user data including mining equipment, mining rate, and solana balance
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('mining_equipment, mining_rate, solana_balance, is_admin')
+      .select('mining_equipment, mining_rate, solana_balance, is_admin, balance')
       .eq('user_id', user_id)
       .single();
 
@@ -51,8 +56,12 @@ export async function GET(request: Request) {
     // This ensures we only return valid GPU counts
     const cleanedEquipment: {[key: string]: number} = {};
     
-    // For admin users, ensure they have 2 of each GPU type (8 total)
-    const isAdmin = user.is_admin || user_id === 'admin';
+    // Check if user is admin (using is_admin flag or matching ADMIN_ID)
+    const isAdmin = user.is_admin === true || user_id === ADMIN_ID;
+    
+    console.log(`User ${user_id} is admin: ${isAdmin}`);
+    console.log(`User mining equipment:`, equipment);
+    console.log(`User balance: ${user.balance}, Solana balance: ${user.solana_balance}`);
     
     if (isAdmin) {
       // Admin always has 2 of each GPU type
@@ -87,6 +96,7 @@ export async function GET(request: Request) {
         activeCount,
         miningRate: adminMiningRate,
         solanaBalance: user.solana_balance || 0,
+        muskyBalance: user.balance || 0,
         miningRates,
         earnings: {
           daily: dailyEarnings,
@@ -136,6 +146,7 @@ export async function GET(request: Request) {
       activeCount,
       miningRate: miningRate,
       solanaBalance: user.solana_balance || 0,
+      muskyBalance: user.balance || 0,
       miningRates,
       earnings: {
         daily: dailyEarnings,

@@ -119,6 +119,9 @@ const gpus: GPU[] = [
   }
 ];
 
+// Admin ID from environment variable
+const ADMIN_ID = process.env.NEXT_PUBLIC_ADMIN_ID || '7093793454';
+
 export default function MiningPage() {
   const { user, mutate } = useUser();
   const [selectedGPU, setSelectedGPU] = useState<GPU | null>(null);
@@ -139,9 +142,16 @@ export default function MiningPage() {
 
   useEffect(() => {
     if (user) {
+      console.log('User data in mining page:', {
+        userId: user.user_id,
+        isAdmin: user.is_admin,
+        adminId: ADMIN_ID
+      });
+      
       fetchUserGPUs();
-      // Check if user is admin (based on user_id)
-      setIsAdmin(user.user_id === 'admin' || user.is_admin);
+      
+      // Only set admin status based on the is_admin flag from user data
+      setIsAdmin(user.is_admin === true);
       
       const interval = setInterval(() => {
         fetchUserGPUs();
@@ -205,6 +215,13 @@ export default function MiningPage() {
       const response = await fetch(`/api/mining/gpus?user_id=${user.user_id}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Mining data received:', data);
+        
+        // Update admin status from API response if available
+        if (data.is_admin !== undefined) {
+          setIsAdmin(data.is_admin === true);
+          console.log('Admin status updated from API:', data.is_admin);
+        }
         
         // Ensure we're getting valid GPU data
         if (data.gpus) {
@@ -228,6 +245,8 @@ export default function MiningPage() {
         setLastUpdateTime(Date.now());
         setLastServerUpdate(Date.now());
         setNextServerUpdate(10 * 60 * 1000); // 10 minutes in milliseconds
+      } else {
+        console.error('Failed to fetch GPU data:', await response.text());
       }
     } catch (error) {
       console.error('Failed to fetch GPU data:', error);
@@ -240,7 +259,10 @@ export default function MiningPage() {
     if (!user) return false;
     
     // Admin can always purchase GPUs
-    if (isAdmin) return true;
+    if (isAdmin) {
+      console.log('Admin user can purchase GPU');
+      return true;
+    }
     
     const currentGPUCount = userGPUs[gpu.name] || 0;
     
@@ -299,10 +321,9 @@ export default function MiningPage() {
     return value.toFixed(6);
   };
 
-  // Calculate USD value of Solana
   const solanaToUSD = (sol: number) => {
-    const solPrice = 150; // $150 per SOL
-    return sol * solPrice;
+    const solPrice = 150; // Estimated SOL price in USD
+    return (sol * solPrice).toFixed(2);
   };
 
   return (
@@ -311,102 +332,87 @@ export default function MiningPage() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">Mining Farm</h1>
-            <p className="text-white/60">Active GPUs: {activeGPUs}/8</p>
+            <p className="text-white/60">Mine Solana with your GPUs</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-white/60">Mining Power</p>
-            <p className="text-xl font-bold">{miningRate.toFixed(4)} SOL/day</p>
-            <div className="text-xs text-accent">
-              {miningPerSecond.toFixed(8)} SOL/sec • {miningPerMinute.toFixed(6)} SOL/min
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-primary/20 backdrop-blur-lg rounded-xl p-4 border border-white/10 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-semibold">Solana Balance</h2>
-              <p className="text-sm text-white/60">Mined SOL</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-green-400">{formatSolana(solanaBalance)} SOL</p>
-              <p className="text-sm text-green-400">≈ ${solanaToUSD(solanaBalance).toFixed(2)} USD</p>
-            </div>
-          </div>
-          
-          {/* Live mining progress */}
-          {miningRate > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <div className="flex justify-between items-center">
-                <p className="text-sm text-white/60">Live Mining</p>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                  <p className="text-sm text-green-400">Active</p>
-                </div>
-              </div>
-              <div className="mt-2 bg-black/30 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-green-500 h-full" 
-                  style={{ 
-                    width: `${miningProgress}%`,
-                    transition: 'width 1s linear'
-                  }}
-                ></div>
-              </div>
-              <div className="flex justify-between mt-1">
-                <p className="text-xs text-white/40">+{(miningPerSecond * 60).toFixed(6)} SOL/min</p>
-                <p className="text-xs text-white/40">
-                  Next update: {Math.floor(nextServerUpdate / 60000)}m {Math.floor((nextServerUpdate % 60000) / 1000)}s
-                </p>
-              </div>
+          {isAdmin && (
+            <div className="bg-orange-500/20 px-3 py-1 rounded-full">
+              <p className="text-orange-400 text-sm font-bold">Admin Mode</p>
             </div>
           )}
         </div>
 
-        {/* GPU Summary */}
-        {activeGPUs > 0 && (
-          <div className="bg-primary/20 backdrop-blur-lg rounded-xl p-4 border border-white/10 mb-6">
-            <h2 className="text-lg font-semibold mb-3">Your Mining Equipment</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(userGPUs).map(([gpuName, count]) => {
-                if (count > 0) {
-                  const gpuInfo = gpus.find(g => g.name === gpuName);
-                  return (
-                    <div key={gpuName} className="bg-black/20 rounded-lg p-3">
-                      <p className="font-bold">{gpuName}</p>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-white/60">Count: {count}/2</p>
-                        <p className="text-sm text-green-400">+{gpuInfo ? (gpuInfo.miningRatePerDay * count).toFixed(3) : '0.000'} SOL/day</p>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })}
+        <div className="bg-primary-dark p-6 rounded-xl mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-black/20 p-4 rounded-lg">
+              <h3 className="text-lg font-bold mb-2">Mining Rate</h3>
+              <div className="space-y-1">
+                <p className="text-xs text-white/60">Per Second:</p>
+                <p className="font-mono text-accent">{miningPerSecond.toFixed(8)} SOL/s</p>
+                <p className="text-xs text-white/60">Per Minute:</p>
+                <p className="font-mono text-accent">{miningPerMinute.toFixed(6)} SOL/min</p>
+                <p className="text-xs text-white/60">Per Day:</p>
+                <p className="font-mono text-accent">{miningRate.toFixed(4)} SOL/day</p>
+                <p className="text-xs text-white/60">Estimated Monthly:</p>
+                <p className="font-mono text-accent">{(miningRate * 30).toFixed(4)} SOL/month</p>
+              </div>
             </div>
-            
-            {/* Total Mining Summary */}
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-white/60">Total Mining (30 days)</p>
-                  <p className="font-bold text-green-400">{(miningRate * 30).toFixed(2)} SOL</p>
+
+            <div className="bg-black/20 p-4 rounded-lg">
+              <h3 className="text-lg font-bold mb-2">Mining Progress</h3>
+              <div className="mb-2">
+                <div className="h-4 bg-black/30 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 to-accent rounded-full"
+                    style={{ width: `${miningProgress}%` }}
+                  ></div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-white/60">Estimated Value</p>
-                  <p className="font-bold text-green-400">${(miningRate * 30 * 150).toFixed(2)} USD</p>
-                </div>
+              </div>
+              <p className="text-xs text-white/60 mb-2">
+                Next server update in {Math.floor(nextServerUpdate / 60000)}m {Math.floor((nextServerUpdate % 60000) / 1000)}s
+              </p>
+              <p className="text-xs text-white/60">Your mining continues even when offline</p>
+              <p className="text-sm mt-2">
+                <span className="text-white/60">Current Balance:</span>{' '}
+                <span className="font-bold">{formatSolana(solanaBalance)} SOL</span>
+              </p>
+              <p className="text-xs text-white/60">
+                ≈ ${solanaToUSD(solanaBalance)} USD
+              </p>
+            </div>
+
+            <div className="bg-black/20 p-4 rounded-lg">
+              <h3 className="text-lg font-bold mb-2">Your GPUs</h3>
+              <div className="space-y-2">
+                {Object.entries(userGPUs).map(([type, count]) => (
+                  count > 0 && (
+                    <div key={type} className="flex justify-between items-center">
+                      <span>{type}</span>
+                      <span className="font-bold">{count}x</span>
+                    </div>
+                  )
+                ))}
+                {Object.values(userGPUs).every(count => count === 0) && (
+                  <p className="text-white/60">No GPUs yet. Purchase below!</p>
+                )}
+              </div>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-xs text-white/60">Active GPUs:</p>
+                <p className="font-bold">{activeGPUs}/8</p>
+                <p className="text-xs text-white/60 mt-2">Total Mining (30 days):</p>
+                <p className="font-bold">{(miningRate * 30).toFixed(4)} SOL</p>
+                <p className="text-xs text-white/60">≈ ${solanaToUSD(miningRate * 30)} USD</p>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
+        <h2 className="text-xl font-bold mb-4">Available Mining Equipment</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {gpus.map((gpu) => (
             <motion.div
               key={gpu.id}
-              className={`bg-primary/20 backdrop-blur-lg rounded-xl p-4 border-2 ${
-                canPurchaseGPU(gpu)
+              className={`bg-primary-dark p-6 rounded-xl border-2 transition-all ${
+                userGPUs[gpu.name] && userGPUs[gpu.name] > 0
                   ? 'border-accent/30 hover:border-accent'
                   : 'border-white/10 opacity-70'
               }`}
@@ -514,4 +520,4 @@ export default function MiningPage() {
       </div>
     </Layout>
   );
-} 
+}

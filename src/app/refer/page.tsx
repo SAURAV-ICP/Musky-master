@@ -113,7 +113,7 @@ export default function ReferPage() {
                     type="text"
                     value={stats?.referralLink || ''}
                     readOnly
-                    className="flex-1 bg-background/50 border border-white/10 rounded-l-lg py-2 px-3 text-sm"
+                    className="flex-1 bg-background/50 border border-white/10 rounded-l-lg py-2 px-3 text-sm text-black font-medium"
                   />
                   <motion.button
                     className="bg-accent py-2 px-4 rounded-r-lg text-sm font-medium"

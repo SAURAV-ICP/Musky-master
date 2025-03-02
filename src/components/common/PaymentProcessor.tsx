@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/contexts/UserContext';
 import Image from 'next/image';
 
 interface PaymentProcessorProps {
@@ -23,6 +23,7 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [processingStep, setProcessingStep] = useState<string>('initializing');
 
   const handlePayment = async () => {
     if (!user) {
@@ -32,12 +33,16 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
 
     setIsProcessing(true);
     setError(null);
+    setProcessingStep('initializing');
 
     try {
       // For TON and Stars, we need to use the Telegram Mini App API
       if (currency === 'TON' || currency === 'Stars') {
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
           try {
+            setProcessingStep('requesting_telegram_payment');
+            console.log(`Requesting ${currency} payment of ${amount} for ${itemType}`);
+            
             // Request payment through Telegram
             const result = await window.Telegram.WebApp.requestPayment({
               amount: amount,
@@ -46,6 +51,9 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
 
             if (result.success) {
               // Payment successful, now record it in our backend
+              setProcessingStep('processing_backend');
+              console.log('Telegram payment successful, processing in backend');
+              
               const response = await fetch('/api/payments/process', {
                 method: 'POST',
                 headers: {
@@ -61,35 +69,52 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
 
               if (response.ok) {
                 const data = await response.json();
+                console.log('Backend processing successful:', data);
                 setIsSuccess(true);
+                setProcessingStep('completed');
+                
                 // Update user data
-                mutate();
+                await mutate();
+                
                 // Notify parent component
                 setTimeout(() => {
                   onSuccess();
                 }, 1500);
               } else {
                 const errorData = await response.json();
-                setError(errorData.error || 'Failed to process payment');
+                console.error('Backend processing failed:', errorData);
+                setError(errorData.error || 'Failed to process payment in our system');
+                setProcessingStep('failed');
               }
             } else {
-              setError('Payment was cancelled or failed');
+              console.error('Telegram payment was cancelled or failed');
+              setError('Payment was cancelled or failed in Telegram');
+              setProcessingStep('failed');
             }
           } catch (e) {
             console.error('Telegram payment error:', e);
-            setError('Failed to process Telegram payment');
+            setError('Failed to process Telegram payment. Please try again.');
+            setProcessingStep('failed');
           }
         } else {
-          setError('Telegram Web App is not available');
+          console.error('Telegram Web App is not available');
+          setError('Telegram Web App is not available. Please open this app in Telegram.');
+          setProcessingStep('failed');
         }
       } else if (currency === 'MUSKY') {
         // For MUSKY, we just need to check balance and process internally
+        setProcessingStep('checking_balance');
+        console.log(`Processing MUSKY payment of ${amount} for ${itemType}`);
+        
         if (user.balance < amount) {
-          setError('Insufficient MUSKY balance');
+          console.error('Insufficient MUSKY balance');
+          setError(`Insufficient MUSKY balance. You have ${user.balance.toLocaleString()} MUSKY, but need ${amount.toLocaleString()} MUSKY.`);
+          setProcessingStep('failed');
           return;
         }
 
         // Process MUSKY payment
+        setProcessingStep('processing_backend');
         const response = await fetch('/api/payments/process', {
           method: 'POST',
           headers: {
@@ -105,21 +130,37 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
 
         if (response.ok) {
           const data = await response.json();
+          console.log('MUSKY payment successful:', data);
           setIsSuccess(true);
+          setProcessingStep('completed');
+          
           // Update user data
-          mutate();
+          await mutate();
+          
           // Notify parent component
           setTimeout(() => {
             onSuccess();
           }, 1500);
         } else {
-          const errorData = await response.json();
-          setError(errorData.error || 'Failed to process payment');
+          let errorMessage = 'Failed to process payment';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // If response is not JSON, use text
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          }
+          
+          console.error('MUSKY payment failed:', errorMessage);
+          setError(errorMessage);
+          setProcessingStep('failed');
         }
       }
     } catch (error) {
       console.error('Payment error:', error);
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
+      setProcessingStep('failed');
     } finally {
       setIsProcessing(false);
     }
@@ -158,12 +199,32 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
 
   const equivalents = getEquivalentAmounts();
 
+  // Helper function to get processing step message
+  const getProcessingStepMessage = () => {
+    switch (processingStep) {
+      case 'initializing':
+        return 'Initializing payment...';
+      case 'requesting_telegram_payment':
+        return 'Requesting payment from Telegram...';
+      case 'checking_balance':
+        return 'Checking your balance...';
+      case 'processing_backend':
+        return 'Processing your payment...';
+      case 'completed':
+        return 'Payment successful!';
+      case 'failed':
+        return 'Payment failed';
+      default:
+        return 'Processing...';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-xl font-bold mb-2">Processing Payment</h3>
         <p className="text-white/60">
-          {isProcessing ? 'Processing your payment...' : 
+          {isProcessing ? getProcessingStepMessage() : 
            isSuccess ? 'Payment successful!' : 
            error ? 'Payment failed' : 
            `Paying ${amount} ${currency} for ${itemType}`}
@@ -173,7 +234,7 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
       <div className="bg-black/20 rounded-xl p-4">
         <div className="flex justify-between items-center mb-2">
           <span className="text-white/60">Amount:</span>
-          <span className="font-bold">{amount} {currency}</span>
+          <span className="font-bold">{amount.toLocaleString()} {currency}</span>
         </div>
         
         {/* Show equivalent amounts */}
@@ -197,13 +258,25 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
             </div>
           )}
         </div>
+        
+        {/* Show user balance for MUSKY payments */}
+        {currency === 'MUSKY' && user && (
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <div className="flex justify-between text-sm">
+              <span className="text-white/60">Your MUSKY Balance:</span>
+              <span className={user.balance >= amount ? "text-green-400" : "text-red-400"}>
+                {user.balance.toLocaleString()} MUSKY
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-center">
         {isProcessing ? (
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 border-4 border-t-accent border-white/20 rounded-full animate-spin mb-4"></div>
-            <p className="text-white/60">Processing payment...</p>
+            <p className="text-white/60">{getProcessingStepMessage()}</p>
           </div>
         ) : isSuccess ? (
           <div className="flex flex-col items-center">
