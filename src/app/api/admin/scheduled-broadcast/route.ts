@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Extract bot username from token (first part before colon)
+const BOT_USERNAME = TELEGRAM_BOT_TOKEN ? TELEGRAM_BOT_TOKEN.split(':')[0] : 'your_bot_username';
 
 // This function will be called by a cron job every 24 hours
 export async function GET(request: Request) {
@@ -42,8 +44,8 @@ export async function GET(request: Request) {
     const inlineKeyboard = {
       inline_keyboard: [
         [
-          { text: "🎁 Claim Daily Rewards", url: `https://t.me/your_bot_username?start=daily` },
-          { text: "💰 Stake Tokens", url: `https://t.me/your_bot_username?start=stake` }
+          { text: "🎁 Claim Daily Rewards", url: `https://t.me/${BOT_USERNAME}?start=daily` },
+          { text: "💰 Stake Tokens", url: `https://t.me/${BOT_USERNAME}?start=stake` }
         ]
       ]
     };

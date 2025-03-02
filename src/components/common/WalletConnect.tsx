@@ -1,190 +1,208 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
-import { toast } from 'react-hot-toast';
-import { Address } from '@ton/core';
+import toast from 'react-hot-toast';
 import { useUser } from '@/contexts/UserContext';
 
 interface WalletState {
-  connected: boolean;
+  isConnected: boolean;
   address: string | null;
-  balance: {
-    ton: number;
-    stars_balance: number;
-    musky_balance: number;
-  };
+  balance: number | null;
+  isLoading: boolean;
 }
 
-const WalletConnect: React.FC = () => {
+export default function WalletConnect() {
+  const { user, updateWalletAddress } = useUser();
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
-  const { user } = useUser();
-  const [isLoading, setIsLoading] = useState(false);
-  const [telegramWallet, setTelegramWallet] = useState<WalletState>({
-    connected: false,
+  const [walletState, setWalletState] = useState<WalletState>({
+    isConnected: false,
     address: null,
-    balance: {
-      ton: 0,
-      stars_balance: 0,
-      musky_balance: 0
-    }
+    balance: null,
+    isLoading: false,
   });
 
+  // Initialize wallet connection when Telegram WebApp is available and user is logged in
   useEffect(() => {
-    // Check if Telegram WebApp is available and initialize wallet
-    if (window.Telegram?.WebApp && user?.user_id) {
-      initTelegramWallet();
+    if (user && typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      // Check if we already have a wallet connection
+      if (wallet && wallet.account) {
+        handleWalletConnected(wallet.account.address, false);
+      } else {
+        // Don't show errors on initial load
+        initTelegramWallet(false);
+      }
     }
-  }, [user?.user_id]);
+  }, [user, wallet]);
 
-  const initTelegramWallet = async () => {
-    if (!window.Telegram?.WebApp || !user?.user_id) {
-      console.error('Telegram WebApp is not available or user is not logged in');
-      return;
+  // Update wallet state when wallet changes
+  useEffect(() => {
+    if (wallet && wallet.account) {
+      handleWalletConnected(wallet.account.address, false);
+      
+      // Try to get balance if available
+      try {
+        // The wallet object might have balance in different formats depending on the version
+        // We'll try to handle different possibilities
+        const rawBalance = (wallet as any).balance;
+        if (rawBalance) {
+          const balanceInTON = Number(rawBalance) / 1000000000; // Convert from nanoTON to TON
+          if (!isNaN(balanceInTON)) {
+            setWalletState(prev => ({
+              ...prev,
+              balance: balanceInTON
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('Error getting wallet balance:', error);
+      }
+    } else if (walletState.isConnected) {
+      // Reset state if wallet disconnected
+      setWalletState({
+        isConnected: false,
+        address: null,
+        balance: null,
+        isLoading: false,
+      });
     }
+  }, [wallet]);
 
+  const initTelegramWallet = async (showErrors = true) => {
     try {
-      // Request wallet connection through Telegram Mini App
-      const result = await window.Telegram.WebApp.requestWallet();
-      if (result) {
-        // Fetch user's balance from your backend
-        const response = await fetch(`/api/user/balance?user_id=${user.user_id}`);
-        const balanceData = await response.json();
+      setWalletState(prev => ({ ...prev, isLoading: true }));
+      
+      if (typeof window === 'undefined' || !window.Telegram?.WebApp) {
+        if (showErrors) {
+          toast.error('Telegram WebApp is not available');
+        }
+        return;
+      }
 
-        if (response.ok) {
-          setTelegramWallet({
-            connected: true,
-            address: result.address,
-            balance: {
-              ton: parseFloat(result.balance.ton || '0'),
-              stars_balance: balanceData.stars_balance || 0,
-              musky_balance: balanceData.musky_balance || 0
-            }
-          });
-        } else {
-          throw new Error(balanceData.error || 'Failed to fetch balance');
+      if (!user) {
+        if (showErrors) {
+          toast.error('Please log in first');
+        }
+        return;
+      }
+
+      // Request wallet connection through Telegram Mini App
+      await tonConnectUI.openModal();
+      
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      if (showErrors) {
+        toast.error('Failed to connect wallet');
+      }
+    } finally {
+      setWalletState(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleWalletConnected = async (address: string, showToast = true) => {
+    try {
+      setWalletState(prev => ({
+        ...prev,
+        isConnected: true,
+        address,
+        isLoading: false,
+      }));
+
+      // Update user's wallet address in database if it's different
+      if (user && (user as any).ton_address !== address) {
+        const success = await updateWalletAddress(address);
+        if (success && showToast) {
+          toast.success('Wallet connected successfully');
         }
       }
     } catch (error) {
-      console.error('Failed to connect Telegram wallet:', error);
-      toast.error('Failed to connect Telegram wallet');
+      console.error('Error handling wallet connection:', error);
+      if (showToast) {
+        toast.error('Failed to update TON wallet information');
+      }
     }
   };
 
   const handleConnectTelegram = async () => {
-    if (!telegramWallet.connected) {
-      await initTelegramWallet();
+    await initTelegramWallet(true);
+  };
+
+  const handleWalletAction = () => {
+    if (walletState.isConnected && walletState.address) {
+      // Copy address to clipboard
+      navigator.clipboard.writeText(walletState.address)
+        .then(() => toast.success('Address copied to clipboard'))
+        .catch(() => toast.error('Failed to copy address'));
+    } else {
+      handleConnectTelegram();
     }
   };
 
-  const handleWalletAction = async () => {
-    try {
-      setIsLoading(true);
-      if (wallet) {
-        await tonConnectUI.disconnect();
-      } else {
-        // First try to use Telegram Wallet if available
-        if (window.Telegram?.WebApp) {
-          await handleConnectTelegram();
-        } else {
-          // Fallback to TON Connect if Telegram Wallet is not available
-          await tonConnectUI.connectWallet();
-        }
-      }
-    } catch (error) {
-      console.error('Wallet action failed:', error);
-      toast.error('Failed to connect wallet');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Function to format wallet address
   const formatAddress = (address: string) => {
-    try {
-      const tempAddress = Address.parse(address).toString();
-      return `${tempAddress.slice(0, 4)}...${tempAddress.slice(-4)}`;
-    } catch (e) {
-      // Fallback if Address parsing fails
-      return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    }
+    if (!address) return '';
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
-  // Display a loading screen when in loading state
-  if (isLoading) {
-    return (
-      <div className="w-full flex items-center justify-center py-8">
-        <div className="bg-primary/20 text-white font-bold py-2 px-4 rounded">
-          Connecting wallet...
-        </div>
-      </div>
-    );
-  }
+  const formatBalance = (balance: number | null) => {
+    if (balance === null) return '0';
+    return balance.toFixed(4);
+  };
 
   return (
-    <div className="w-full space-y-4">
-      {/* Wallet Connection Button */}
+    <motion.div 
+      className="flex flex-col items-center justify-center p-4 rounded-lg"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <motion.button
-        className={`w-full py-3 px-4 ${wallet || telegramWallet.connected ? 'bg-primary/40' : 'bg-accent'} rounded-xl font-bold flex items-center justify-center space-x-2`}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
         onClick={handleWalletAction}
-        disabled={isLoading || !user?.user_id}
+        className={`flex items-center justify-center px-4 py-2 rounded-full text-white font-medium transition-all ${
+          walletState.isConnected 
+            ? 'bg-green-600 hover:bg-green-700' 
+            : 'bg-blue-600 hover:bg-blue-700'
+        }`}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        disabled={walletState.isLoading}
       >
-        <span>💎</span>
-        <span>
-          {!user?.user_id ? 'Please wait...' : 
-            wallet || telegramWallet.connected ? 'Disconnect Wallet' : 'Connect Wallet'}
-        </span>
+        {walletState.isLoading ? (
+          <span className="flex items-center">
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Connecting...
+          </span>
+        ) : walletState.isConnected && walletState.address ? (
+          <span className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            {formatAddress(walletState.address)}
+          </span>
+        ) : (
+          <span className="flex items-center">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+            </svg>
+            Connect Wallet
+          </span>
+        )}
       </motion.button>
-
-      {(wallet || telegramWallet.connected) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+      
+      {walletState.isConnected && (
+        <motion.div 
+          className="mt-2 text-sm text-gray-600"
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-primary/20 rounded-xl p-4 border border-white/10"
+          transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
-                💎
-              </div>
-              <span className="text-sm font-mono">
-                {formatAddress(wallet?.account.address || telegramWallet.address!)}
-              </span>
-            </div>
-            <motion.button
-              className="text-sm text-accent"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                const address = wallet?.account.address || telegramWallet.address!;
-                navigator.clipboard.writeText(address);
-                toast.success('Address copied to clipboard');
-              }}
-            >
-              Copy
-            </motion.button>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-background/50 p-3 rounded-lg">
-              <p className="text-sm text-white/60">TON Balance</p>
-              <p className="font-bold">{telegramWallet.balance.ton.toFixed(2)} TON</p>
-            </div>
-            <div className="bg-background/50 p-3 rounded-lg">
-              <p className="text-sm text-white/60">Stars Balance</p>
-              <p className="font-bold">{telegramWallet.balance.stars_balance} ⭐</p>
-            </div>
-            <div className="bg-background/50 p-3 rounded-lg">
-              <p className="text-sm text-white/60">MUSKY Balance</p>
-              <p className="font-bold">{telegramWallet.balance.musky_balance} 🐕</p>
-            </div>
-          </div>
+          Balance: {formatBalance(walletState.balance)} TON
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
-};
-
-export default WalletConnect; 
+} 
