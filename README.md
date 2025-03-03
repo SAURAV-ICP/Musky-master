@@ -17,6 +17,7 @@ A Telegram bot for managing MUSKY token airdrops and referrals.
 - 📅 Daily claim system with increasing rewards
 - 📣 Admin broadcast messaging system
 - 🔔 Balance-based notification popups
+- 👛 TON wallet integration for payments and token management
 
 ## Setup
 
@@ -58,11 +59,13 @@ User data is stored in Supabase with the following information:
 - Referral count
 - Token balance
 - Solana address
+- TON address
 - Verification status
 - Join timestamp
 - Mining equipment
 - Mining rate
 - Solana balance
+- TON balance
 - Staking positions
 - Daily claim streak
 
@@ -104,6 +107,16 @@ The balance popup system shows targeted messages to users with specific balances
 - One-time display with local storage tracking
 - Smooth animations for better user experience
 
+### TON Wallet Integration
+
+The TON wallet integration allows users to connect their TON wallets for payments and token management:
+
+- Connect TON wallets directly through the Telegram Mini App
+- View wallet balance and address
+- Store wallet addresses in the database
+- Use TON for payments within the app
+- Secure wallet connection using TON Connect protocol
+
 ## Deployment to Vercel
 
 ### Prerequisites
@@ -133,6 +146,7 @@ The balance popup system shows targeted messages to users with specific balances
    - Add Environment Variables:
      - Copy all variables from `.env.production`
      - Update `NEXT_PUBLIC_API_URL` to your Vercel deployment URL
+     - Set `NEXT_PUBLIC_TON_ADDRESS` to your TON wallet address
    - Click "Deploy"
 
 3. **Deploy using Vercel CLI (Alternative)**
@@ -149,7 +163,35 @@ The balance popup system shows targeted messages to users with specific balances
 
 4. **After Deployment**
    - Update your Telegram Mini App URL to point to your Vercel deployment
+   - Update the `tonconnect-manifest.json` file with your app's domain
    - Test all functionality in production environment
+
+### Setting Up TON Wallet Integration
+
+1. **Update TON Connect Manifest**
+   - Edit the `public/tonconnect-manifest.json` file:
+     ```json
+     {
+       "url": "https://your-app-domain.com",
+       "name": "Musky Mini App",
+       "iconUrl": "https://your-app-domain.com/logo.png",
+       "termsOfUseUrl": "https://your-app-domain.com/terms",
+       "privacyPolicyUrl": "https://your-app-domain.com/privacy"
+     }
+     ```
+
+2. **Enable TON Payments in BotFather**
+   - Go to @BotFather on Telegram
+   - Use /mybots and select your bot
+   - Go to Bot Settings > Payments
+   - Select TON as the payment provider
+
+3. **Test Wallet Connection**
+   - Open your Mini App in Telegram
+   - Click the "Connect Wallet" button
+   - Authorize the connection in your TON wallet
+   - Verify that your wallet address is displayed correctly
+   - Check that the address is stored in the database
 
 ### Updating Your Deployment
 

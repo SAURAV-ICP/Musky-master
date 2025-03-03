@@ -10,6 +10,7 @@ The application is built using:
 - Next.js for the frontend and API routes
 - Supabase for database storage
 - Telegram Mini App API for integration with Telegram
+- TON Connect for wallet integration
 
 ## Core Features
 
@@ -31,6 +32,23 @@ The mining system is implemented in `src/app/mining/page.tsx` and allows users t
 
 The mining rate is calculated based on the user's active GPUs, with a maximum of 2 GPUs per type and 8 GPUs total.
 
+### TON Wallet Integration
+
+The TON wallet integration allows users to connect their TON wallets directly through the Telegram Mini App. This feature is implemented in:
+
+1. `src/components/common/WalletConnect.tsx`: Handles wallet connection and displays wallet information
+2. `src/contexts/UserContext.tsx`: Provides the `updateWalletAddress` function to store wallet addresses
+3. `src/app/api/user/update-wallet/route.ts`: API endpoint for updating wallet addresses in the database
+
+The integration uses the TON Connect protocol, which is configured in:
+- `public/tonconnect-manifest.json`: Defines the app's information for TON Connect
+- `src/components/Layout.tsx`: Provides the TON Connect UI provider to the app
+
+When a user connects their wallet:
+1. The wallet address is stored in the `ton_address` field in the database
+2. The wallet balance is displayed in the UI
+3. The address can be used for payments and token transfers
+
 ### API Endpoints
 
 #### Mining GPUs API (`/api/mining/gpus`)
@@ -47,6 +65,12 @@ The mining rate is calculated based on the user's active GPUs, with a maximum of
 
 - **POST**: Allows fixing admin status for users
 - Restricted to updating only if the user ID matches the admin ID
+
+#### Update Wallet API (`/api/user/update-wallet`)
+
+- **POST**: Updates the user's TON wallet address in the database
+- Stores the address in the `ton_address` field
+- Also updates the `telegram_id` field if it's not set
 
 ## Payment Processing
 
@@ -83,7 +107,9 @@ interface User {
   level: string;
   is_admin: boolean;
   solana_address: string | null;
+  ton_address: string | null;
   mining_rate: number;
+  telegram_id: string | null;
 }
 ```
 
@@ -105,6 +131,28 @@ interface GPU {
 }
 ```
 
+## TON Connect Integration
+
+The TON Connect integration allows users to connect their TON wallets to the app. The integration is configured in:
+
+```json
+// public/tonconnect-manifest.json
+{
+  "url": "https://your-app-domain.com",
+  "name": "Musky Mini App",
+  "iconUrl": "https://your-app-domain.com/logo.png",
+  "termsOfUseUrl": "https://your-app-domain.com/terms",
+  "privacyPolicyUrl": "https://your-app-domain.com/privacy"
+}
+```
+
+The wallet connection flow is:
+1. User clicks "Connect Wallet" button
+2. TON Connect UI opens a modal with available wallets
+3. User selects a wallet and authorizes the connection
+4. Wallet address is stored in the database
+5. Wallet balance is displayed in the UI
+
 ## Debugging
 
 For debugging authentication issues, navigate to the `/debug` page, which provides:
@@ -119,6 +167,9 @@ The application requires the following environment variables:
 - `NEXT_PUBLIC_ADMIN_ID`: The Telegram user ID of the admin user
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anonymous key
+- `NEXT_PUBLIC_TON_ADDRESS`: Your TON wallet address for receiving payments
+- `TELEGRAM_BOT_TOKEN`: Your Telegram bot token
+- `CRON_SECRET_KEY`: Secret key for scheduled broadcasts
 
 ## Deployment
 
@@ -128,6 +179,8 @@ The app is designed to be deployed as a Telegram Mini App. The deployment proces
 2. Deploying to a hosting service (Vercel recommended)
 3. Registering the app with BotFather in Telegram
 4. Configuring the Mini App settings in BotFather
+5. Setting up TON payments in BotFather
+6. Updating the TON Connect manifest with your app's domain
 
 ## Future Features
 
@@ -171,6 +224,11 @@ Expansion of the MUSKY token utility:
    - Check currency conversion rates
    - Ensure proper callback handling
 
+4. **Wallet Connection Issues**
+   - Check that the TON Connect manifest is correctly configured
+   - Verify that the TON Connect UI provider is properly initialized
+   - Ensure the user has a compatible TON wallet installed
+
 ## Best Practices
 
 1. **User Experience**
@@ -187,6 +245,7 @@ Expansion of the MUSKY token utility:
    - Validate all user inputs
    - Implement proper authentication checks
    - Protect sensitive admin functions
+   - Securely handle wallet connections and transactions
 
 ## Contributing
 
