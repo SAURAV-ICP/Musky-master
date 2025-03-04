@@ -4,7 +4,13 @@ import axios from 'axios';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Use the service role key if available, otherwise fall back to the anon key
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseKey) {
+  throw new Error('Supabase key is required. Please set either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // TON API endpoint (using TON Center API)
