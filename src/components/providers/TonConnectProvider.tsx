@@ -1,4 +1,5 @@
-import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import { TonConnectUIProvider, THEME } from '@tonconnect/ui-react';
+import type { Color } from '@tonconnect/ui-react';
 
 // Get the correct manifest URL based on environment
 const manifestUrl = typeof window !== 'undefined'
@@ -20,7 +21,22 @@ export function TonConnectProvider({ children }: TonConnectProviderProps) {
       manifestUrl={manifestUrl}
       actionsConfiguration={{
         twaReturnUrl: origin as `${string}://${string}`,
-        skipRedirectToWallet: "always"
+        skipRedirectToWallet: "always" // Important for Telegram Mini App
+      }}
+      uiPreferences={{
+        theme: THEME.DARK,
+        colorsSet: {
+          [THEME.DARK]: {
+            background: {
+              primary: '#0D47A1',
+              secondary: '#1565C0'
+            },
+            text: {
+              primary: '#FFFFFF',
+              secondary: '#E3F2FD'
+            }
+          }
+        }
       }}
     >
       {children}

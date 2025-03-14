@@ -210,3 +210,102 @@ To update your deployment after making changes:
    ```bash
    vercel --prod
    ```
+
+# Musky Mini App
+
+A Telegram Mini App for the MUSKY Token Airdrop Bot with TON wallet integration.
+
+## Features
+
+- Connect TON wallets for payments and token management
+- View wallet balances and store wallet addresses in the database
+- Automatic TON balance updates via cron jobs
+- Secure payment processing for in-app purchases
+- User-friendly interface with modern design
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 16+
+- npm or yarn
+- Supabase account
+- Telegram Bot created via BotFather
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/musky-mini-app.git
+cd musky-mini-app
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create a `.env.local` file with your environment variables:
+```
+NEXT_PUBLIC_SUPABASE_URL='https://your-project.supabase.co'
+NEXT_PUBLIC_SUPABASE_ANON_KEY='your-anon-key'
+NEXT_PUBLIC_TON_ADDRESS='your-ton-wallet-address'
+CRON_SECRET_KEY='your-secret-key'
+SUPABASE_SERVICE_ROLE_KEY='your-service-role-key'
+```
+
+4. Run the development server:
+```bash
+npm run dev
+```
+
+## TON Wallet Integration
+
+The app includes full TON wallet integration, allowing users to:
+
+- Connect their TON wallets to the app
+- View their TON balance within the app
+- Make payments using TON for various in-app purchases
+- Store their wallet addresses securely in the database
+
+For detailed information about the TON wallet integration, see [TON Wallet Integration Documentation](docs/TON_WALLET_INTEGRATION.md).
+
+## Deployment
+
+For detailed deployment instructions, see [Deployment Checklist](DEPLOYMENT.md).
+
+Quick deployment steps:
+
+1. Install required dependencies:
+```bash
+npm install dotenv axios @supabase/supabase-js --save
+```
+
+2. Set up Supabase for migrations:
+```bash
+node scripts/setup_migration_function.js
+```
+
+3. Deploy to Vercel:
+```bash
+node scripts/deploy_to_vercel.js
+```
+
+4. Run database migrations:
+```bash
+node scripts/run_ton_migration.js
+node scripts/run_migration.js migrations/add_cron_logs_table.sql
+```
+
+## Scripts
+
+- `scripts/deploy_to_vercel.js`: Automated deployment to Vercel
+- `scripts/setup_migration_function.js`: Sets up the exec_sql function in Supabase
+- `scripts/run_migration.js`: Runs SQL migrations on the Supabase database
+- `scripts/run_ton_migration.js`: Runs the TON wallet migration
+- `scripts/update_ton_balances.js`: Updates TON balances for all users
+- `scripts/test_ton_wallet.js`: Tests the TON wallet integration
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -25,12 +25,16 @@
   ],
   "crons": [
     {
-      "path": "/api/admin/scheduled-broadcast?key=$CRON_SECRET_KEY",
-      "schedule": "0 12 * * *"
+      "path": "/api/cron/update-mining?key=$CRON_SECRET_KEY",
+      "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/update-ton-balances?key=$CRON_SECRET_KEY",
-      "schedule": "0 */6 * * *"
+      "path": "/api/cron/daily-reset?key=$CRON_SECRET_KEY",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/check-expired?key=$CRON_SECRET_KEY",
+      "schedule": "*/30 * * * *"
     }
   ]
 } 

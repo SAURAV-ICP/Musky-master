@@ -7,6 +7,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 // Use the service role key if available, otherwise fall back to the anon key
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+if (!supabaseUrl) {
+  throw new Error('Supabase URL is required. Please set NEXT_PUBLIC_SUPABASE_URL in your environment variables.');
+}
+
 if (!supabaseKey) {
   throw new Error('Supabase key is required. Please set either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.');
 }
@@ -20,6 +24,11 @@ const TON_API_KEY = process.env.TON_API_KEY || ''; // Optional API key for highe
 // Secret key for securing the cron job
 const CRON_SECRET_KEY = process.env.CRON_SECRET_KEY;
 
+/**
+ * Fetches the TON balance for a given address
+ * @param {string} address - The TON wallet address
+ * @returns {Promise<number>} - The balance in TON
+ */
 async function getTonBalance(address: string): Promise<number> {
   try {
     const url = `${TON_API_URL}?api_key=${TON_API_KEY}&address=${address}`;
@@ -37,10 +46,39 @@ async function getTonBalance(address: string): Promise<number> {
   }
 }
 
+/**
+ * Logs the cron job execution to the database
+ */
+async function logCronExecution(jobName: string, successCount: number, errorCount: number, details: string) {
+  try {
+    await supabase
+      .from('cron_logs')
+      .insert({
+        job_name: jobName,
+        success_count: successCount,
+        error_count: errorCount,
+        details: details
+      });
+    
+    return true;
+  } catch (error) {
+    console.error('Error logging cron execution:', error);
+    return false;
+  }
+}
+
 export async function GET(request: Request) {
   // Verify the secret key to secure the cron job
   const { searchParams } = new URL(request.url);
   const secretKey = searchParams.get('key');
+  
+  if (!CRON_SECRET_KEY) {
+    console.error('CRON_SECRET_KEY is not set in environment variables');
+    return NextResponse.json(
+      { error: 'Server configuration error: CRON_SECRET_KEY is not set' },
+      { status: 500 }
+    );
+  }
   
   if (secretKey !== CRON_SECRET_KEY) {
     return NextResponse.json(
@@ -66,6 +104,7 @@ export async function GET(request: Request) {
     }
     
     if (!users || users.length === 0) {
+      await logCronExecution('update_ton_balances', 0, 0, 'No users with TON addresses found');
       return NextResponse.json(
         { message: 'No users with TON addresses found' },
         { status: 200 }
@@ -86,6 +125,11 @@ export async function GET(request: Request) {
       // Process each user in the batch
       const batchPromises = batch.map(async (user) => {
         try {
+          if (!user.ton_address) {
+            console.log(`Skipping user ${user.user_id}: No TON address`);
+            return;
+          }
+          
           // Get TON balance from API
           const balance = await getTonBalance(user.ton_address);
           
@@ -119,14 +163,8 @@ export async function GET(request: Request) {
     }
     
     // Log the update to the database for tracking
-    await supabase
-      .from('cron_logs')
-      .insert({
-        job_name: 'update_ton_balances',
-        success_count: successCount,
-        error_count: errorCount,
-        details: `Updated TON balances for ${successCount} users with ${errorCount} errors`
-      });
+    const logDetails = `Updated TON balances for ${successCount} users with ${errorCount} errors`;
+    await logCronExecution('update_ton_balances', successCount, errorCount, logDetails);
     
     return NextResponse.json({
       message: 'TON balance update completed',
@@ -139,8 +177,16 @@ export async function GET(request: Request) {
     
   } catch (error) {
     console.error('Unexpected error:', error);
+    
+    // Try to log the error
+    try {
+      await logCronExecution('update_ton_balances', 0, 1, `Failed with error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error', details: error },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
